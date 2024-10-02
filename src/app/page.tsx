@@ -6,6 +6,7 @@ import { CMDK } from "@/components/cmdk";
 import { useEffect, useState } from "react";
 import { WeatherData } from "@/lib/api_types_weather";
 import { Card } from "@/components/card";
+import dayjs from "dayjs";
 
 export default function Home() {
   // const [location, setLocation] = useState<Place | null>({
@@ -63,6 +64,9 @@ export default function Home() {
           <h1 className="text-8xl text-center mt-4 font-black uppercase tracking-wide">
             {location.name || location.display_name}
           </h1>
+          <p className="text-center text-gray-200/80">
+            Precise location: {location.display_name}
+          </p>
           {forecast === null ? (
             <div className="flex justify-center items-center w-full my-8">
               <div className="h-4 w-4 animate-spin border-4 rounded-full border-t-transparent border-white" />
@@ -78,10 +82,11 @@ export default function Home() {
                   <p className="font-bold uppercase text-3xl">
                     {forecast.current.temp_c}°
                   </p>
-                  <p className="font-semibold text-sm text-gray-200/80">{forecast.current.condition.text}</p>
                   <p className="font-semibold text-sm text-gray-200/80">
-                    Feels like{" "}
-                    {forecast.current.feelslike_c}*
+                    {forecast.current.condition.text}
+                  </p>
+                  <p className="font-semibold text-sm text-gray-200/80">
+                    Feels like {forecast.current.feelslike_c}*
                   </p>
                 </div>
                 <div className="flex items-center flex-col">
@@ -114,11 +119,9 @@ export default function Home() {
                   })
                   .map((forecast) => {
                     return (
-                      // TODO: dayjs date -> day
-                      // TODO: C & F switch headless ui
                       <Card
                         key={forecast.date}
-                        title={forecast.date}
+                        title={dayjs(forecast.date).format("dddd")}
                         description={forecast.day.condition.text}
                         className="flex-grow-0 min-h-full flex-shrink-0 w-max basis-50"
                         header={
@@ -127,7 +130,7 @@ export default function Home() {
                               "64x64",
                               "128x128"
                             )}
-                            className="w-full"
+                            className="w-full w-40 m-auto"
                             alt={forecast.day.condition.text}
                           />
                         }
