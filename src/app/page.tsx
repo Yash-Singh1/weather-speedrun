@@ -1,101 +1,150 @@
-import Image from "next/image";
+"use client";
+
+import { Place } from "@/lib/api_types";
+import "../styles/cmdk.scss";
+import { CMDK } from "@/components/cmdk";
+import { useEffect, useState } from "react";
+import { WeatherData } from "@/lib/api_types_weather";
+import { Card } from "@/components/card";
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="https://nextjs.org/icons/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+  // const [location, setLocation] = useState<Place | null>({
+  //   display_name: "Cupertino",
+  //   place_id: 311374829,
+  // });
+  const [location, setLocation] = useState<Place | null>(null);
+  const [forecast, setForecast] = useState<WeatherData | null>(null);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="https://nextjs.org/icons/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  const onSelectLocation = (location: Place) => {
+    console.log(location);
+    setLocation(location);
+    // Cache in localStorage for dev
+    if (localStorage.getItem(`weather:${location.place_id}`)) {
+      setForecast(
+        JSON.parse(
+          localStorage.getItem(`weather:${location.place_id}`) as string
+        )
+      );
+      return;
+    }
+    (
+      fetch(
+        `https://api.weatherapi.com/v1/forecast.json?key=${process.env.NEXT_PUBLIC_WEATHERAPI_API_KEY}&q=${location.lat},${location.lon}&aqi=no&days=7`
+      ).then((res) => res.json()) as Promise<WeatherData>
+    ).then((data) => {
+      console.log(data);
+      setForecast(data);
+      localStorage.setItem(
+        `weather:${location.place_id}`,
+        JSON.stringify(data)
+      );
+    });
+    // setForecast([{}] as unknown as WeatherData);
+  };
+
+  // DEBUG: rm later
+  useEffect(() => {
+    if (location) onSelectLocation(location);
+  }, []);
+
+  return (
+    <div
+      className={`flex w-full justify-center ${
+        location === null ? "items-center" : ""
+      } min-h-screen p-8 pb-20 gap-16 sm:p-12 font-[family-name:var(--font-geist-sans)]`}
+    >
+      {location === null ? (
+        <CMDK onSelectLocation={onSelectLocation} />
+      ) : (
+        <div className="w-full">
+          <h2 className="text-6xl text-center font-bold uppercase tracking-wide">
+            Weather in
+          </h2>
+          <h1 className="text-8xl text-center mt-4 font-black uppercase tracking-wide">
+            {location.name || location.display_name}
+          </h1>
+          {forecast === null ? (
+            <div className="flex justify-center items-center w-full my-8">
+              <div className="h-4 w-4 animate-spin border-4 rounded-full border-t-transparent border-white" />
+            </div>
+          ) : (
+            <>
+              <h4 className="text-4xl font-semibold my-4">Current</h4>
+              <div className="w-96 border border-neutral-400/20 bg-black/60 flex flex-row justify-between items-center p-8">
+                <div>
+                  <h5 className="font-bold uppercase text-xl mb-4">
+                    {location.name || location.display_name}
+                  </h5>
+                  <p className="font-bold uppercase text-3xl">
+                    {forecast.current.temp_c}°
+                  </p>
+                  <p className="font-semibold text-sm text-gray-200/80">{forecast.current.condition.text}</p>
+                  <p className="font-semibold text-sm text-gray-200/80">
+                    Feels like{" "}
+                    {forecast.current.feelslike_c}*
+                  </p>
+                </div>
+                <div className="flex items-center flex-col">
+                  <div
+                    style={{
+                      backgroundImage: `url(${forecast.current.condition.icon.replace(
+                        "64x64",
+                        "128x128"
+                      )})`,
+                      backgroundRepeat: "no-repeat",
+                      backgroundPosition: "center",
+                    }}
+                    className="w-24 h-24"
+                  >
+                    &nbsp;
+                  </div>
+                </div>
+              </div>
+              <h4 className="text-4xl font-semibold my-4">Forecast</h4>
+              <div className="flex flex-row flex-wrap gap-4">
+                {forecast.forecast.forecastday
+                  .filter((day) => {
+                    const date = new Date(day.date);
+                    console.log(date);
+                    return (
+                      date.getTime() <=
+                        new Date().setDate(new Date().getDate() + 7) &&
+                      date.getDate() >= new Date().getDate()
+                    );
+                  })
+                  .map((forecast) => {
+                    return (
+                      // TODO: dayjs date -> day
+                      // TODO: C & F switch headless ui
+                      <Card
+                        key={forecast.date}
+                        title={forecast.date}
+                        description={forecast.day.condition.text}
+                        className="flex-grow-0 min-h-full flex-shrink-0 w-max basis-50"
+                        header={
+                          <img
+                            src={forecast.day.condition.icon.replace(
+                              "64x64",
+                              "128x128"
+                            )}
+                            className="w-full"
+                            alt={forecast.day.condition.text}
+                          />
+                        }
+                      >
+                        <p>High: {forecast.day.maxtemp_c}°</p>
+                        <p>Average: {forecast.day.avgtemp_c}°</p>
+                        <p>Low: {forecast.day.mintemp_c}°</p>
+                        <p>Rainfall: {forecast.day.totalprecip_mm}mm</p>
+                        <p>Wind: {forecast.day.maxwind_kph}kph</p>
+                      </Card>
+                    );
+                  })}
+              </div>
+            </>
+          )}
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+      )}
     </div>
   );
 }
